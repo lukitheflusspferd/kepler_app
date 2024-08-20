@@ -33,6 +33,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:kepler_app/colors.dart';
+import 'package:kepler_app/libs/april_fools.dart';
 import 'package:kepler_app/libs/custom_color_picker.dart';
 import 'package:kepler_app/libs/indiware.dart';
 import 'package:kepler_app/libs/lernsax.dart';
@@ -301,14 +302,19 @@ class _SettingsTabState extends State<SettingsTab> {
                   title: const Text("🏳️‍🌈 Regenbogenmodus aktivieren"),
                   description: const Text("Farbe vieler Oberflächen wird zu Regenbogenanimation geändert"),
                   // enabled: userType != UserType.nobody,
-                )//,
+                ),
                 /*rainbowSwitchTile(
                   initialValue: prefs.aprilFoolsEnabled,
                   onToggle: (val) => prefs.aprilFoolsEnabled = val,
                   title: const Text("Aprilscherze aktivieren"),
                   description: const Text("nur am 1. April"),
                 )*/
-
+                SettingsTile.navigation(
+                  onPressed: (context) {
+                    Navigator.push(context, MaterialPageRoute(builder: infiniteSwitchPageBuilder));
+                  },
+                  title: const Text("Zusatzfunktionen deaktivieren"),
+                )
               ],
             ),
             SettingsSection(
