@@ -45,6 +45,7 @@ import 'package:kepler_app/main.dart';
 import 'package:kepler_app/navigation.dart';
 import 'package:kepler_app/rainbow.dart';
 import 'package:kepler_app/tabs/home/home.dart';
+import 'package:kepler_app/tabs/hourtable/ht_data.dart';
 import 'package:kepler_app/tabs/hourtable/pages/your_plan.dart';
 import 'package:provider/provider.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -237,20 +238,21 @@ class _SettingsTabState extends State<SettingsTab> {
                   },
                   disabled: userType == UserType.nobody,
                 ),
-                rainbowSwitchTile(
-                  initialValue: prefs.considerLernSaxTasksAsCancellation,
-                  onToggle: (val) => prefs.considerLernSaxTasksAsCancellation = val,
-                  title: const Text("\"$cancellationALaLernSax\" als Ausfall ansehen"),
-                  description: const Text("auch wenn das kein richtiger Ausfall ist"),
-                  enabled: userType != UserType.nobody,
-                ),
-                rainbowSwitchTile(
-                  initialValue: prefs.considerLernSaxTasksAsCancellation ? prefs.showLernSaxCancelledLessonsInRoomPlan : true,
-                  onToggle: (val) => prefs.showLernSaxCancelledLessonsInRoomPlan = val,
-                  title: const Text("LernSax-Ausfall im Raumplan anzeigen"),
-                  description: const Text("Stunden mit \"$cancellationALaLernSax\" im Raumplan anzeigen"),
-                  enabled: prefs.considerLernSaxTasksAsCancellation && userType != UserType.nobody,
-                ),
+                // wird nicht mehr so verwendet
+                // rainbowSwitchTile(
+                //   initialValue: prefs.considerLernSaxTasksAsCancellation,
+                //   onToggle: (val) => prefs.considerLernSaxTasksAsCancellation = val,
+                //   title: const Text("\"$cancellationALaLernSax\" als Ausfall ansehen"),
+                //   description: const Text("auch wenn das kein richtiger Ausfall ist"),
+                //   enabled: userType != UserType.nobody,
+                // ),
+                // rainbowSwitchTile(
+                //   initialValue: prefs.considerLernSaxTasksAsCancellation ? prefs.showLernSaxCancelledLessonsInRoomPlan : true,
+                //   onToggle: (val) => prefs.showLernSaxCancelledLessonsInRoomPlan = val,
+                //   title: const Text("LernSax-Ausfall im Raumplan anzeigen"),
+                //   description: const Text("Stunden mit \"$cancellationALaLernSax\" im Raumplan anzeigen"),
+                //   enabled: prefs.considerLernSaxTasksAsCancellation && userType != UserType.nobody,
+                // ),
                 rainbowSwitchTile(
                   initialValue: prefs.enableInfiniteStuPlanScrolling,
                   onToggle: (val) => prefs.enableInfiniteStuPlanScrolling = val,
@@ -271,6 +273,13 @@ class _SettingsTabState extends State<SettingsTab> {
                   title: const Text("Icon für Räume mit letzter Verwendung"),
                   description: const Text("Stunden mit Räumen, die am ausgewählten Tag das letzte Mal verwendet werden, bekommen ein besonderes Icon"),
                   enabled: userType != UserType.nobody,
+                ),
+                rainbowSwitchTile(
+                  initialValue: prefs.showYourPlanAddDropdown,
+                  onToggle: (val) => prefs.showYourPlanAddDropdown = val,
+                  title: const Text("Möglichkeit für Stundenpläne hinzufügen anzeigen"),
+                  description: Text("aktivieren, um auf Seite \"${sie ? "Ihr" : "Dein"} Stundenplan\" Stundenpläne hinzufügen können"),
+                  enabled: userType != UserType.nobody && Provider.of<StuPlanData>(context, listen: false).altSelectedClassNames.isEmpty,
                 ),
               ],
             ),
@@ -491,6 +500,7 @@ class _NotificationSettingsDialogState<T> extends State<NotificationSettingsDial
               checkNotificationPermission().then((notifsAllowed) {
                 if (notifsAllowed) {
                   widget.updateData(selected);
+                  if (!context.mounted) return;
                   Navigator.pop(context);
                 } else {
                   requestNotificationPermission().then((requestSuccessful) {
@@ -500,6 +510,7 @@ class _NotificationSettingsDialogState<T> extends State<NotificationSettingsDial
                       widget.updateData(<T>[]);
                       showSnackBar(text: "Keine Zustimmung erteilt. Wir werden keine Benachrichtigungen senden.", error: true);
                     }
+                    if (!context.mounted) return;
                     Navigator.pop(context);
                   });
                 }
@@ -560,7 +571,7 @@ class ColorSelectSettingsTile extends AbstractSettingsTile {
                 ),
               ),
             ),
-            TextSpan(text: current != null ? " #${current.toString().substring(10, 10+6).toUpperCase()}" : "keine"),
+            TextSpan(text: current != null ? " #${current?.value.toRadixString(16).padLeft(8, '0')}" : "keine"),
           ],
         ),
       ),
@@ -700,6 +711,7 @@ class _CSTileColorSelectDialogState extends State<CSTileColorSelectDialog> {
                     }, child: const Text("Fertig")),
                   ],
                 ),
+              // ignore: use_build_context_synchronously
               ).then((_) => Navigator.pop(context));
             },
             title: Text(

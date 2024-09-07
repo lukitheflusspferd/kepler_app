@@ -190,6 +190,9 @@ class Preferences extends SerializableObject with ChangeNotifier {
     setSaveNotify("logging_enabled", val);
     _loggingEnabled = val;
   }
+  
+  bool get showYourPlanAddDropdown => attributes["show_yp_addrop"] ?? true;
+  set showYourPlanAddDropdown(bool val) => setSaveNotify("show_yp_addrop", val);
 
   bool loaded = false;
 
@@ -205,5 +208,6 @@ class Preferences extends SerializableObject with ChangeNotifier {
 
   Preferences() {
     objectCreators["time_to_next_plan"] = (_) => HMTime(14, 45);
+    objectCreators["stuplan_names"] = (_) => <String>[];
   }
 }
