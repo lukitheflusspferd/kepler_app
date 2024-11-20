@@ -33,6 +33,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:kepler_app/info_screen.dart';
+import 'package:kepler_app/introduction.dart';
 import 'package:kepler_app/libs/indiware.dart';
 import 'package:kepler_app/libs/lernsax.dart';
 import 'package:kepler_app/libs/logging.dart';
@@ -43,6 +44,7 @@ import 'package:kepler_app/navigation.dart';
 import 'package:kepler_app/tabs/hourtable/ht_data.dart';
 import 'package:provider/provider.dart';
 
+/// Einführungsdisplays für Schüler bzw. Eltern
 InfoScreenDisplay stuPlanPupilIntroScreens() => InfoScreenDisplay(
   infoScreens: [
     InfoScreen(
@@ -59,10 +61,13 @@ InfoScreenDisplay stuPlanPupilIntroScreens() => InfoScreenDisplay(
       infoText: SubjectSelectScreen(),
       closeable: false,
     ),
+    stuPlanSetupFinishedScreen(),
   ],
 );
 
+/// Seite für Klassenauswahl
 class ClassSelectScreen extends StatelessWidget {
+  /// sollen Lehrerkürzel statt Klassen/JG verwendet werden und soll dann direkt zum Stundenplan weitergeleitet werden?
   final bool teacherMode;
   const ClassSelectScreen({super.key, this.teacherMode = false});
 
@@ -71,17 +76,14 @@ class ClassSelectScreen extends StatelessWidget {
     return Consumer<StuPlanData>(
       builder: (context, stdata, _) {
         return SPClassSelector(
-          preselected: stdata.selectedClassName,
+          preselected: teacherMode ? stdata.selectedTeacherName : stdata.selectedClassName,
           onSubmit: (selected) {
-            Provider.of<StuPlanData>(context, listen: false).selectedClassName = selected;
             if (teacherMode) {
-              final state = Provider.of<AppState>(context, listen: false);
-              state.clearInfoScreen();
-              if (globalScaffoldState.isDrawerOpen) globalScaffoldState.closeDrawer();
-              state.selectedNavPageIDs = [StuPlanPageIDs.main, StuPlanPageIDs.yours];
+              stdata.selectedTeacherName = selected;
             } else {
-              infoScreenState.next();
+              stdata.selectedClassName = selected;
             }
+            infoScreenState.next();
           },
           teacherMode: teacherMode,
         );
@@ -90,6 +92,7 @@ class ClassSelectScreen extends StatelessWidget {
   }
 }
 
+/// Dropdown-Item mit Index im value entsprechend Parametern erstellen
 DropdownMenuItem<(int, String)> classNameToIndexedDropdownItem(String className, bool teacher, int index, [String? suffix])
   => DropdownMenuItem(
       value: (index, className),
@@ -99,7 +102,8 @@ DropdownMenuItem<(int, String)> classNameToIndexedDropdownItem(String className,
       ),
     );
 
-DropdownMenuItem<String> classNameToDropdownItem(String className, bool teacher, [int? index])
+/// Dropdown-Item mit nur Name im value erstellen
+DropdownMenuItem<String> classNameToDropdownItem(String className, bool teacher)
   => DropdownMenuItem(
       value: className,
       child: Padding(
@@ -108,13 +112,20 @@ DropdownMenuItem<String> classNameToDropdownItem(String className, bool teacher,
       ),
     );
 
+/// Widget für das Auswählen einer/eines Klasse/JGs/Lehrerkürzels
 class SPClassSelector extends StatefulWidget {
+  /// vorausgewählter Eintrag
   final String? preselected;
+  /// Daten und Darstellung für Lehrer verwenden
   final bool teacherMode;
+  /// wird nach erfolgreicher Auswahl aufgerufen
   final void Function(String selected) onSubmit;
+  /// wird nach Abbruch durch Benutzer aufgerufen
   final void Function()? onCancel;
+  /// Hinweis bzgl. Benachrichtigungen anzeigen
+  final bool alternativeAccount;
 
-  const SPClassSelector({super.key, this.preselected, required this.teacherMode, required this.onSubmit, this.onCancel});
+  const SPClassSelector({super.key, this.preselected, required this.teacherMode, required this.onSubmit, this.onCancel, this.alternativeAccount = false});
 
   @override
   State<SPClassSelector> createState() => _SPClassSelectorState();
@@ -127,15 +138,20 @@ class _SPClassSelectorState extends State<SPClassSelector> {
 
   @override
   Widget build(BuildContext context) {
+    /// da dieses Widget teilweise in Dialogen verwendet wird, muss hier der globale Kontext verwendet werden
     final userType = Provider.of<AppState>(globalScaffoldContext, listen: false).userType;
     final sie = Provider.of<Preferences>(globalScaffoldContext, listen: false).preferredPronoun == Pronoun.sie;
     final stdata = Provider.of<StuPlanData>(globalScaffoldContext, listen: false);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (userType == UserType.pupil) Text("Bitte ${sie ? "wählen Sie Ihre" : "wähle Deine"} Klasse für den Stundenplan aus.")
-        else if (userType == UserType.parent) Text("Bitte ${sie ? "wählen Sie" : "wähle"} die Klasse ${sie ? "Ihres" : "Deines"} Kindes für den Stundenplan aus.")
-        else if (userType == UserType.teacher) Text("Bitte ${sie ? "wählen Sie Ihr" : "wähle Dein"} Lehrerkürzel aus."),
+        Text(
+          /// Text war ursprünglich in einer Zeile, aber viel zu unübersichtlich -> aufgeteilt nach Benutzertyp
+          ((userType == UserType.pupil) ? "Bitte ${sie ? "wählen Sie Ihre" : "wähle Deine"} Klasse für den Stundenplan aus."
+          : (userType == UserType.parent) ? "Bitte ${sie ? "wählen Sie" : "wähle"} die Klasse ${sie ? "Ihres" : "Deines"} Kindes für den Stundenplan aus."
+          : (userType == UserType.teacher) ? "Bitte ${sie ? "wählen Sie Ihr" : "wähle Dein"} Lehrerkürzel aus."
+          : "") + (widget.alternativeAccount ? "\nHinweis: Nur für den primären Account werden Benachrichtigungen angezeigt." : ""),
+        ),
         if (_loading) const Padding(
           padding: EdgeInsets.all(8.0),
           child: CircularProgressIndicator(),
@@ -150,6 +166,11 @@ class _SPClassSelectorState extends State<SPClassSelector> {
               ),
             ],
           ),
+          /// AnimatedBuilder eignen sich gut für ChangeNotifier, weil sie sich neu builden
+          /// wenn sich etwas an animation ändert (und ein ChangeNotifier auch nur ein Listenable ist)
+          /// 
+          /// - hier kann vor allem nicht(!) Consumer verwendet werden, da es im aktuellen Kontext nicht unbedingt
+          /// die gewünschten Provider gibt -> deshalb auch globaler Kontext an Anfang der Funktion
         ) else AnimatedBuilder(
           animation: stdata,
           builder: (context, _) => DropdownButton(
@@ -195,6 +216,7 @@ class _SPClassSelectorState extends State<SPClassSelector> {
   }
 
   Future<StuPlanData?> _loadData() async {
+    /// auch hier globalen Kontext verwenden
     final creds = Provider.of<CredentialStore>(globalScaffoldContext, listen: false);
     final spdata = Provider.of<StuPlanData>(globalScaffoldContext, listen: false);
     setState(() {
@@ -202,6 +224,8 @@ class _SPClassSelectorState extends State<SPClassSelector> {
       _error = null;
     });
     if (creds.lernSaxLogin == lernSaxDemoModeMail) {
+      /// oha was ein schrecklicher Aufruf, aber anscheinend hab ich keine bessere Lösung gefunden
+      /// (ist ja auch nur für den Demo-Modus, also eigentlich eh egal)
       await Future.delayed(const Duration(milliseconds: 100)); // not elegant, but avoids state change conflicts
       spdata.loadDataFromKlData(
         VPKlData(
@@ -305,8 +329,12 @@ class _SPClassSelectorState extends State<SPClassSelector> {
     }
     if (widget.teacherMode) {
       try {
+        /// weil es für Lehrer (gerade auf iOS) zeitweise das Problem gab, dass die Login-Daten für Indiware irgendwie
+        /// einfach verloren gingen, frage ich sie hier nochmal komplett neu von LernSax ab
         if (creds.vpHost == null || creds.vpUser == null || creds.vpPassword == null) {
           final (online, lsdata) = await getLernSaxAppDataJson(creds.lernSaxLogin!, creds.lernSaxToken!, widget.teacherMode);
+          /// da spätestens bei den "!" in getLehrerXmlLeData ein Fehler geworfen wird, wenn eins der drei null ist,
+          /// kann ich bei einem Abfragefehler auch einfach hier einen werfen
           if (!online || lsdata == null) throw Exception("error when loading data from lernsax${!online ? " (not online)" : ""}");
           creds.vpHost = lsdata.host;
           creds.vpUser = lsdata.user;
@@ -357,6 +385,7 @@ class _SPClassSelectorState extends State<SPClassSelector> {
   }
 }
 
+/// für InfoScreen, Fächerauswahl für primäre ausgewählte Klasse (nur für Schüler/Eltern)
 class SubjectSelectScreen extends StatelessWidget {
   const SubjectSelectScreen({super.key});
 
@@ -370,12 +399,11 @@ class SubjectSelectScreen extends StatelessWidget {
           },
           onFinish: (selected) {
             Provider.of<StuPlanData>(context, listen: false).selectedCourseIDs = selected;
-            final state = Provider.of<AppState>(context, listen: false);
-            state.clearInfoScreen();
-            if (globalScaffoldState.isDrawerOpen) globalScaffoldState.closeDrawer();
-            state.selectedNavPageIDs = [StuPlanPageIDs.main, StuPlanPageIDs.yours];
+            infoScreenState.next();
           },
           availableSubjects: stdata.availableClassSubjects!,
+          /// wenn nicht in Klasse 5 bis 10: standardmäßig keine Klausuren anzeigen (weil Klausuren
+          /// nur für Klasse 11/12 im Stundenplan stehen)
           currentShowExams: stdata.selectedClassName != null && !stdata.selectedClassName!.contains("-"),
           onShowExams: (val) {
             Provider.of<Preferences>(context, listen: false).stuPlanShowExams = val;
@@ -386,12 +414,19 @@ class SubjectSelectScreen extends StatelessWidget {
   }
 }
 
+/// Widget für das Auswählen von anzuzeigenden Fächern für eine Klasse
 class SPSubjectSelector extends StatefulWidget {
+  /// wird aufgerufen, wenn Auswahl erfolgreich abgeschlossen und auf Weiter getippt
   final void Function(List<int> subjectIDs) onFinish;
+  /// wird aufgerufen, wenn Benutzer auf "zurück" tippt
   final void Function() onGoBack;
+  /// wird aufgerufen, wenn Benutzer Checkbox an- oder abwählt (Zustand ändert)
   final void Function(bool enabled)? onShowExams;
+  /// Fächer, aus denen ausgewählt werden kann
   final List<VPCSubjectS> availableSubjects;
+  /// Fächer, die standardmäßig angewählt sein sollen
   final List<VPCSubjectS>? preselectedSubjects;
+  /// Voreinstellung für Checkbox für Klausuren
   final bool currentShowExams;
 
   const SPSubjectSelector({
@@ -409,6 +444,7 @@ class SPSubjectSelector extends StatefulWidget {
 }
 
 class _SPSubjectSelectorState extends State<SPSubjectSelector> {
+  /// warum der existiert, weiß ich nicht (vielleicht für eventuelle ScrollBar?)
   late final ScrollController _scctr;
   final List<int> _selected = [];
   bool _showExams = false;
@@ -560,6 +596,7 @@ class _SPSubjectSelectorState extends State<SPSubjectSelector> {
   }
 }
 
+/// Einleitungs-InfoScreens für Lehrerstundenplan (nur Auswahl Lehrerkürzel)
 InfoScreenDisplay stuPlanTeacherIntroScreens() => InfoScreenDisplay(
   infoScreens: [
     InfoScreen(
@@ -571,11 +608,64 @@ InfoScreenDisplay stuPlanTeacherIntroScreens() => InfoScreenDisplay(
       },
       closeable: true,
     ),
+    stuPlanSetupFinishedScreen(),
   ],
 );
 
+InfoScreen stuPlanSetupFinishedScreen() => InfoScreen(
+  infoImage: Icon(Icons.check),
+  infoTitle: Text("Einrichtung abgeschlossen"),
+  infoText: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 16, left: 8, right: 8),
+        child: Selector<Preferences, bool>(
+          selector: (ctx, prefs) => prefs.preferredPronoun == Pronoun.sie,
+          builder: (ctx, sie, _) => Text("${sie ? "Sie haben Ihren" : "Du hast Deinen"} primären Stundenplan erfolgreich eingerichtet."),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
+        child: TextButton(
+          onPressed: () {
+            final state = Provider.of<AppState>(globalScaffoldContext, listen: false);
+            state.clearInfoScreen();
+            if (globalScaffoldState.isDrawerOpen) globalScaffoldState.closeDrawer();
+            state.selectedNavPageIDs = [StuPlanPageIDs.main, StuPlanPageIDs.yours];
+            showDialog(
+              context: globalScaffoldContext,
+              builder: (_) => const AddNewStuPlanDialog(),
+            );
+          },
+          child: Text("Weiteren Stundenplan hinzufügen"),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ElevatedButton(
+          onPressed: () {
+            final state = Provider.of<AppState>(globalScaffoldContext, listen: false);
+            state.clearInfoScreen();
+            if (globalScaffoldState.isDrawerOpen) globalScaffoldState.closeDrawer();
+            state.selectedNavPageIDs = [StuPlanPageIDs.main, StuPlanPageIDs.yours];
+          },
+          child: TextWithArrowForward(text: "Zum Stundenplan"),
+        ),
+      ),
+    ],
+  ),
+  onTryClose: (_, context) {
+    if (globalScaffoldState.isDrawerOpen) globalScaffoldState.closeDrawer();
+    return true;
+  },
+);
 
+
+/// Dialog, um Stundenplan hinzuzufügen oder zu bearbeiten(!) (wenn `editId != null`)
 class AddNewStuPlanDialog extends StatefulWidget {
+  /// wenn gegeben, statt neuen Stundenplan zu erstellen vorhandenen mit dieser ID
+  /// (diesem Index in StuPlanData.altSelectedClassNames) bearbeiten
   final int? editId;
 
   const AddNewStuPlanDialog({super.key, this.editId});
@@ -602,9 +692,12 @@ class _AddNewStuPlanDialogState extends State<AddNewStuPlanDialog> {
               setState(() => _newClass = selected);
             },
             onCancel: () => Navigator.pop(context, false),
+            alternativeAccount: true,
           ) : SPSubjectSelector(
             onFinish: (selected) {
               if (widget.editId == null) {
+                /// da zum Benachrichtigen von Änderungen das immer neu gesetzt werden muss, wird hier eine
+                /// Zuweisung verwendet, obwohl nur `add` aufgerufen wurde
                 stdata.altSelectedClassNames = stdata.altSelectedClassNames..add(_newClass!);
                 stdata.altSelectedCourseIDs = stdata.altSelectedCourseIDs..add(selected.join("|"));
               } else {
