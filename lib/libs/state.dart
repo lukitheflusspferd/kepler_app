@@ -43,16 +43,20 @@ import 'package:kepler_app/navigation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 late final SharedPreferences sharedPreferences;
+/// ist das dunkle Farbschema aktiviert?
 bool hasDarkTheme(BuildContext context) => Theme.of(context).brightness == Brightness.dark;
 
+/// Keys für alle Sachen, die in den Shared Preferences gespeichert werden
 const newsCachePrefKey = "news_cache";
 const credStorePrefKey = "cred_store";
 const securePrefs = FlutterSecureStorage(
   aOptions: AndroidOptions(encryptedSharedPreferences: true),
 );
 
+/// Mail, die für die Aktivierung des Demo-Modus' verwendet werden muss
 const lernSaxDemoModeMail = "jkgappdemo@jkgc.lernsax.de";
 
+/// für die Speicherung von allen Login-Daten, wird in Flutter Secure Storage (verschlüsselt) gespeichert
 class CredentialStore extends SerializableObject with ChangeNotifier {
   CredentialStore() {
     objectCreators["alt_ls_logins"] = (_) => <String>[];
@@ -102,22 +106,25 @@ class CredentialStore extends SerializableObject with ChangeNotifier {
     alternativeLSTokens = alternativeLSTokens..removeAt(index);
   }
 
+  /// Indiware-Host
   String? get vpHost => attributes["vp_host"] ?? indiware.baseUrl;
   set vpHost(String? host) => _setSaveNotify("vp_host", host);
 
+  /// Benutzername für Indiware
   String? get vpUser => attributes["vp_user"];
   set vpUser(String? user) {
     if (kCredsDebug) logCatch("creds-debug", "vpUser changed to ${user == null ? "null" : "value with len ${user.length}"}", StackTrace.current);
     _setSaveNotify("vp_user", user);
   }
 
+  /// Passwort für Indiware
   String? get vpPassword => attributes["vp_password"];
   set vpPassword(String? password) {
     if (kCredsDebug) logCatch("creds-debug", "vpPassword changed to ${password == null ? "null" : "value with len ${password.length}"}", StackTrace.current);
     _setSaveNotify("vp_password", password);
   }
 
-  // VP doesn't need alternative accounts, because it's the same
+  // VP doesn't need alternative accounts, because it'd be the same login data
 
   String _serialize() => _serializer.serialize(this);
   void loadFromJson(String json) {
@@ -131,9 +138,12 @@ class CredentialStore extends SerializableObject with ChangeNotifier {
     vpHost = null;
     vpUser = null;
     vpPassword = null;
+    alternativeLSLogins = alternativeLSLogins..clear();
+    alternativeLSTokens = alternativeLSTokens..clear();
   }
 }
 
+/// Benutzertyp
 enum UserType {
   pupil, teacher, parent, nobody;
   @override
@@ -147,6 +157,7 @@ enum UserType {
   }
 }
 
+/// für alles, was den aktuellen Status der App beschreibt (ephemeral, nur im RAM)
 class AppState extends ChangeNotifier {
   /// needed to make current navigation available to the tabs, so they change content based on sub-tab
   /// last ID is for "topmost" (currently visible) page
@@ -157,6 +168,8 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// welche NavPage (Liste weil Pfad, z.B. ["lernsax", "notifications"]) nach dem nächsten Schließen eines
+  /// InfoScreens geöffnet werden soll
   List<String>? navPagesToOpenAfterNextISClose;
 
   InfoScreenDisplay? _infoScreen;
@@ -182,6 +195,7 @@ class AppState extends ChangeNotifier {
 
 const internalStatePrefsKey = "internal_state";
 
+/// wie Preferences, aber für Einstellungen, die nur App-intern verwendet werden (nicht vom Benutzer veränderbar)
 class InternalState extends SerializableObject with ChangeNotifier {
   final _serializer = Serializer();
 
@@ -191,40 +205,54 @@ class InternalState extends SerializableObject with ChangeNotifier {
     save();
   }
 
+  /// zuletzt bestätigter Typ des Benutzers (für Offlineverwendung)
   UserType? get lastUserType => UserType.values.firstWhere((element) => element.name == attributes["last_user_type"], orElse: () => UserType.nobody);
   set lastUserType(UserType? type) => _setSaveNotify("last_user_type", type?.name);
 
+  /// wann wurde der Benutzertyp zuletzt online überprüft
   DateTime? get lastUserTypeCheck => (attributes.containsKey("last_ut_check") && attributes["last_ut_check"] != null) ? DateTime.parse(attributes["last_ut_check"]) : null;
   set lastUserTypeCheck(DateTime? val) => _setSaveNotify("last_ut_check", val?.toIso8601String());
 
+  /// wurde die App-Einleitung erfolgreich abgeschlossen?
   bool get introShown => attributes["intro_shown"] ?? false;
   set introShown(bool introShown) => _setSaveNotify("intro_shown", introShown);
 
+  /// letzte Stundenplan-ID, die auf der "Dein/Ihr Stundenplan"-Seite ausgewählt wurde
   int? get lastSelectedClassYourPlan => attributes["lscpyp"];
   set lastSelectedClassYourPlan(int? val) => _setSaveNotify("lscpyp", val);
+  /// letzte Klasse, die für den Klassenplan ausgewählt wurde
   String? get lastSelectedClassPlan => attributes["lscp"];
   set lastSelectedClassPlan(String? val) => _setSaveNotify("lscp", val);
+  /// letzter Raum, der für den Raumplan ausgewählt wurde
   String? get lastSelectedRoomPlan => attributes["lsrp"];
   set lastSelectedRoomPlan(String? val) => _setSaveNotify("lsrp", val);
+  /// letztes Lehrerkürzel, was für den Lehrerplan ausgewählt wurde
   String? get lastSelectedTeacherPlan => attributes["lstp"];
   set lastSelectedTeacherPlan(String? val) => _setSaveNotify("lstp", val);
+  /// letzter LS-Kurs, für den die Aufgabe angeschaut wurden
   String? get lastSelectedLSTaskClass => attributes["lslstc"];
   set lastSelectedLSTaskClass(String? val) => _setSaveNotify("lslstc", val);
+  /// letzter Zustand der "Abgeschlossene anzeigen"-Checkbox auf der LS-Aufgaben-Seite
   bool get lastSelectedLSTaskShowDone => attributes["lslstsd"] ?? false;
   set lastSelectedLSTaskShowDone(bool val) => _setSaveNotify("lslstsd", val);
+  /// letzter LS-Mail-Ordner, für den die E-Mails angeschaut wurden
   String? get lastSelectedLSMailFolder => attributes["lslsmf"];
   set lastSelectedLSMailFolder(String? val) => _setSaveNotify("lslsmf", val);
 
+  /// Liste der IDs der Info-Dialoge, die dem Benutzer schon angezeigt wurden
   List<String> get infosShown => (attributes["infos_shown"] as String?)?.split("|") ?? [];
   set infosShown(List<String> val) => _setSaveNotify("infos_shown", val.join("|"));
   void addInfoShown(String info) => infosShown = infosShown..add(info);
 
+  /// welche Widgets schon automatisch zur Homepage hinzugefügt wurden
   List<String> get widgetsAdded => (attributes["widgets_added"] as String?)?.split("|") ?? [];
   set widgetsAdded(List<String> val) => _setSaveNotify("widgets_added", val.join("|"));
 
+  /// letzter Zeitpunkt, zu dem der Stundenplan automatisch aktualisiert wurde
   DateTime? get lastStuPlanAutoReload => (attributes.containsKey("last_sp_auto_rl") && attributes["last_sp_auto_rl"] != null) ? DateTime.parse(attributes["last_sp_auto_rl"]) : null;
   set lastStuPlanAutoReload(DateTime? val) => _setSaveNotify("last_sp_auto_rl", val?.toIso8601String());
 
+  /// Versionsnummer des letzten Changelogs, der dem Benutzer angezeigt wurde
   int get lastChangelogShown => attributes["last_cl_shown"] ?? -1;
   set lastChangelogShown(int val) => _setSaveNotify("last_cl_shown", val);
 
@@ -241,6 +269,7 @@ class InternalState extends SerializableObject with ChangeNotifier {
   }
 }
 
+/// Endungen von LernSax-Mail-Adressen von Eltern bzw. Eltern-ähnlichen Konten
 final parentTypeEndings = [
   "eltern",
   "vati",

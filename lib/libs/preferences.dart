@@ -108,6 +108,7 @@ class Preferences extends SerializableObject with ChangeNotifier {
   double get stuPlanDataAvailableBorderWidth => attributes["sp_border_width"] ?? 3;
   set stuPlanDataAvailableBorderWidth(double val) => setSaveNotify("sp_border_width", val);
 
+  /// sollen Klausuren im Stundenplan angezeigt werden
   bool get stuPlanShowExams => attributes["sp_show_exams"] ?? false;
   set stuPlanShowExams(bool val) => setSaveNotify("sp_show_exams", val);
 

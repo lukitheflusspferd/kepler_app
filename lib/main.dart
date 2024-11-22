@@ -39,6 +39,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_system_proxy/flutter_system_proxy.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kepler_app/changelog.dart';
 import 'package:kepler_app/colors.dart';
@@ -50,12 +51,14 @@ import 'package:kepler_app/libs/lernsax.dart';
 import 'package:kepler_app/libs/logging.dart';
 import 'package:kepler_app/libs/notifications.dart';
 import 'package:kepler_app/libs/preferences.dart';
+import 'package:kepler_app/libs/proxy.dart';
 import 'package:kepler_app/libs/snack.dart';
 import 'package:kepler_app/libs/state.dart';
 import 'package:kepler_app/libs/tasks.dart';
 import 'package:kepler_app/libs/filesystem.dart' as fs;
 import 'package:kepler_app/loading_screen.dart';
 import 'package:kepler_app/navigation.dart';
+import 'package:kepler_app/tabs/about.dart';
 import 'package:kepler_app/tabs/hourtable/ht_data.dart';
 import 'package:kepler_app/tabs/lernsax/ls_data.dart';
 import 'package:kepler_app/tabs/school/news_data.dart';
@@ -111,6 +114,14 @@ Future<void> loadAndPrepareApp() async {
   if (await fs.fileExists(await lernSaxDataFilePath)) {
     final data = await fs.readFile(await lernSaxDataFilePath);
     if (data != null) _lernSaxData.loadFromJson(data);
+  }
+
+  /// Bei iOS werden die Credentials auch nach Deinstallation der App noch in der System-Keychain gespeichert, was
+  /// zu Instabilität führen kann. Da der Benutzer, wenn introShown == false, sowieso noch keine Daten im CredStore
+  /// gespeichert haben sollte, wird der dann zur Sicherheit beim Öffnen geleert - es könnte ja auch das Öffnen
+  /// nach einer Reinstallation sein.
+  if (!_internalState.introShown) {
+    _credStore.clearData();
   }
 
   /// die übergebene Funktion wird vom Workmanager aufgerufen, wenn es Zeit für die Hintergrund-
@@ -179,6 +190,24 @@ void main() async {
 
   /// erster "länger dauernder" Ausführungsschritt, lädt Benutzereinstellungen
   await prepareApp();
+
+  /// wenn ein Widget beim Rendern oder Erstellen einen Fehler wirft, verwendet Flutter diesen Builder, um stattdessen
+  /// das erstellt Fehlerwidget anzuzeigen (normalerweise wird im Release-Modus nur ein grauer Bildschirm angezeigt,
+  /// dabei weiß der Benutzer allerdings nicht, was los ist)
+  /// - im Debug-Modus soll trotzdem der Fehler angezeigt werden
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    final exception = details.exception;
+    return ErrorWidget.withDetails(
+      message: kDebugMode ? "Error when rendering:\n${details.exceptionAsString()}" : "Oh nein :(\n\nEs ist ein Fehler beim Darstellen aufgetreten.\nBitte kontaktiere den Ersteller der App (siehe \"Feedback & Kontakt\" in der Seitenleiste) bzw. schreibe eine E-Mail an $creatorMail.",
+      error: exception is FlutterError ? exception : null,
+    );
+  };
+
+  /// Der folgende Block an Code kümmert sich um das Einrichten vom Proxy, wie es vom System vorgegeben wird.
+  /// Dies ist nötig, da auf Schul-iPads im Schul-WLAN immer ein Proxy zum Internetzugriff verwendet werden muss.
+  logDebug("proxy", "proxy: ${await FlutterSystemProxy.findProxyFromEnvironment("https://www.lernsax.de")}");
+  HttpOverrides.global = ProxyHttpOverrides();
+
   /// Hier beginnt die große Magie!
   /// Die App wird initialisiert, und mit runApp wird Flutter mitgeteilt, dass es jetzt dieses
   /// Widget auf der Anzeigefläche rendern soll.
@@ -208,7 +237,8 @@ void showLoginScreenAgain({ bool clearData = true, bool closeable = true }) {
     Provider.of<Preferences>(ctx, listen: false).startNavPage = PageIDs.home;
   }
   Provider.of<AppState>(ctx, listen: false)
-    ..selectedNavPageIDs = [PageIDs.home] // isn't neccessarily the default screen (because of prefs), but idc
+    ..selectedNavPageIDs = ["404"]
+    ..navPagesToOpenAfterNextISClose = Provider.of<Preferences>(ctx, listen: false).startNavPageIDs
     ..infoScreen = InfoScreenDisplay(
       infoScreens: closeable ? loginAgainScreens : loginAgainScreensUncloseable,
     );
@@ -222,6 +252,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // throw ""; // Test for new ErrorWidget
     if (Platform.isIOS || Platform.isAndroid) {
       return const KeplerApp();
     } else {
@@ -257,6 +288,7 @@ final globalScaffoldKey = GlobalKey<ScaffoldState>();
 /// der State wird für Scaffold-Funktionen wie das Anzeigen von SnackBars benötigt
 ScaffoldState get globalScaffoldState => globalScaffoldKey.currentState!;
 /// der Context siehe oben
+/// TODO: nicht mehr verwenden. einfach mal die Provider über das MaterialApp Widget schieben - dann wäre das nicht mehr nötig
 BuildContext get globalScaffoldContext => globalScaffoldKey.currentContext!;
 
 /// wofür der genau da ist, weiß ich nicht ups
@@ -394,6 +426,7 @@ class _KeplerAppState extends State<KeplerApp> {
   /// - nur, wenn Benutzer zuletzt angemeldet war
   /// Sowohl LernSax als auch Indiware werden separat überprüft, und nur für den Service, für den Fehler auftreten,
   /// werden die Anmeldedaten neu abgefragt.
+  /// Auch alternative LS-Logins werden überprüft und, falls ungültig, mit einem Hinweis entfernt.
   /// Damit auch bei fehlender Internetverbindung die App verwendet werden kann, wird der Benutzer im InternalState
   /// zwischengespeichert.
   Future<UserType> calcUT() async {
@@ -407,6 +440,7 @@ class _KeplerAppState extends State<KeplerApp> {
     _internalState.lastUserTypeCheck = DateTime.now();
     if (_credStore.lernSaxToken != null && _credStore.lernSaxLogin != null) {
       final (online, check) = await confirmLernSaxCredentials(_credStore.lernSaxLogin!, _credStore.lernSaxToken!);
+      /// wenn kein Internet -> annehmen, Benutzertyp hat sich nicht geändert
       if (!online) {
         showSnackBar(textGen: (sie) => "LernSax ist nicht erreichbar. ${sie ? "Sind Sie" : "Bist Du"} mit dem Internet verbunden? Die App kann nicht auf aktuelle Daten zugreifen.");
         return _internalState.lastUserType ?? UserType.nobody;
@@ -430,9 +464,25 @@ class _KeplerAppState extends State<KeplerApp> {
         _credStore.vpPassword = null;
       }
       if (isLernsaxInvalid || isStuplanInvalid) return UserType.nobody;
+
+      /// seperate Liste, damit i nicht auf einmal nicht mehr auf alternativeLSLogins passt
+      final toRemove = <int>[];
+      /// alle alternativen LS-Logins auch überprüfen
+      for (var i = 0; i < _credStore.alternativeLSLogins.length; i++) {
+        final (online, check) = await confirmLernSaxCredentials(_credStore.alternativeLSLogins[i], _credStore.alternativeLSTokens[i]);
+        if (!online) break;
+        if (check != true) {
+          toRemove.add(i);
+          showSnackBar(text: "Fehler beim Authentifizieren mit LernSax-Konto ${_credStore.alternativeLSLogins[i]}. Es wurde entfernt.");
+        }
+      }
+      for (final remove in toRemove) {
+        _credStore.removeAlternativeLSUser(remove);
+      }
+
+      /// wenn Check fehlschlägt -> annehmen, Benutzertyp hat sich nicht geändert
       if (check == null) {
-        // no internet = assume user didn't change
-        showSnackBar(textGen: (sie) => "LernSax ist nicht erreichbar. ${sie ? "Sind Sie" : "Bist Du"} mit dem Internet verbunden? Die App kann nicht auf aktuelle Daten zugreifen.");
+        showSnackBar(textGen: (sie) => "Fehler beim Kommunizieren mit LernSax. ${sie ? "Sind Sie" : "Bist Du"} mit dem Internet verbunden? Die App kann nicht auf aktuelle Daten zugreifen.");
         return _internalState.lastUserType ?? UserType.nobody;
       } else {
         final ut = await determineUserType(_credStore.lernSaxLogin!, _credStore.lernSaxToken!);

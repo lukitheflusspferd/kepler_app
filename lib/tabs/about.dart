@@ -43,10 +43,23 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Link zur Datenschutzerklärung der Kepler-App
 const keplerAppDSELink = "https://www.kepler-chemnitz.de/materialis/datenschutzerklaerung-kepler-app/";
+/// E-Mail, unter der der aktueller Hauptzuständige erreichbar ist
+/// für Kontakt und Fehlerbildschirm
+const creatorMail = "a.albert@gamer153.dev";
 
+/// sollte nicht mehr verändert werden, war bei Erstellung zum Ausprobieren, welche Größe gut aussieht
 const rainbowScale = 2.0;
 
+/// Tab für Infos über die App (und Debug-Logs)
+/// - Anzeige App-Version
+/// - Kontakt zum Zuständigen
+/// - Link zu diesem Repo
+/// - Info zur Lizenz
+/// - Links zu OS-Lizenzen, Datenschutzerklärung, vlant.de
+/// - Regenboggenflagge für Regenbogen-Modus
+/// - Button für Öffnen der Übersicht für Debug-Logs
 class AboutTab extends StatefulWidget {
   const AboutTab({super.key});
 
@@ -85,7 +98,7 @@ class _AboutTabState extends State<AboutTab> {
                   child: ElevatedButton(
                     onPressed: () {
                       launchUrl(
-                        Uri.parse("mailto:a.albert@gamer153.dev"),
+                        Uri.parse("mailto:$creatorMail"),
                         mode: LaunchMode.externalApplication,
                       ).catchError((_) {
                         showSnackBar(text: "Keine Anwendung für E-Mails gefunden.");
