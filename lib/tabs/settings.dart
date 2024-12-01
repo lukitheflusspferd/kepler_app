@@ -47,6 +47,7 @@ import 'package:kepler_app/rainbow.dart';
 import 'package:kepler_app/tabs/home/home.dart';
 import 'package:kepler_app/tabs/hourtable/ht_data.dart';
 import 'package:kepler_app/tabs/hourtable/ht_intro.dart';
+import 'package:kepler_app/libs/filesystem.dart' as fs;
 import 'package:provider/provider.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -143,6 +144,20 @@ class _SettingsTabState extends State<SettingsTab> {
                 ),
                 /// da der Benutzer hier nichts ändern kann, gibt es tatsächlich mal ein passendes vorgefertigtes
                 /// SettingsTile, was bei Tippen einfach etwas ausführt
+                SettingsTile.navigation(
+                  onPressed: (context) async {
+                    Navigator.push(context, MaterialPageRoute(builder: sharePreferencesPageBuilder(await fs.readFile(await stuPlanDataFilePath))));
+                    },
+                  title: const Text("Einstellungen exportieren"),
+                  description: const Text("um diese auf einem anderen Gerät benutzen zu können"),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (context) async {
+                    prefs.loadFromExportJson();
+                  },
+                  title: const Text("Einstellungen importieren"),
+                  description: const Text("von einem anderen Gerät exportierte Einstellungen"),
+                ),
                 SettingsTile.navigation(
                   title: Text.rich(
                     TextSpan(
@@ -366,7 +381,7 @@ class _SettingsTabState extends State<SettingsTab> {
                   title: const Text("🏳️‍🌈 Regenbogenmodus aktivieren"),
                   description: const Text("Farbe vieler Oberflächen wird zu Regenbogenanimation geändert"),
                   // enabled: userType != UserType.nobody,
-                )//,
+                ),
                 /*rainbowSwitchTile(
                   initialValue: prefs.aprilFoolsEnabled,
                   onToggle: (val) => prefs.aprilFoolsEnabled = val,

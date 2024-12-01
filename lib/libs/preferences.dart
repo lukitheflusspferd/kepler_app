@@ -31,16 +31,27 @@
 // Sie sollten eine Kopie der GNU General Public License zusammen mit
 // kepler_app erhalten haben. Wenn nicht, siehe <https://www.gnu.org/licenses/>.
 
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:enough_serialization/enough_serialization.dart';
 import 'package:flutter/material.dart';
 import 'package:kepler_app/colors.dart';
 import 'package:kepler_app/libs/indiware.dart';
 import 'package:kepler_app/libs/state.dart';
+import 'package:kepler_app/libs/logging.dart';
 import 'package:kepler_app/main.dart';
 import 'package:kepler_app/navigation.dart';
 import 'package:kepler_app/tabs/home/home.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:file_picker/file_picker.dart';
 
 const prefsPrefKey = "user_preferences";
+
+/// Version der Einstellungen, muss für jede Änderung in denselben geändert werden,
+/// damit die App keine Einstellungen importiert, welche aus einer neueren App-Version stammen
+/// das wäre wahrscheinlich kein Problem, dann würden aber evtl. ungenutzte prefs rumliegen, die potentiell Ärger machen könnten
+const prefsVersion = 1;
 
 bool? deviceInDarkMode;
 
@@ -56,6 +67,7 @@ enum Pronoun {
     Pronoun.sie: "Mit Sie anreden",
   }[this]!;
 }
+
 enum AppTheme {
   system,
   dark,
@@ -161,8 +173,8 @@ class Preferences extends SerializableObject with ChangeNotifier {
   bool get rainbowModeEnabled => attributes["rainbow_enabled"] ?? false;
   set rainbowModeEnabled(bool val) => setSaveNotify("rainbow_enabled", val);
 
-  bool get aprilFoolsEnabled => attributes["aprilfools_enabled"] ?? false;
-  set aprilFoolsEnabled(bool val) => setSaveNotify("aprilfools_enabled", val);
+  bool get reverseSPEnabled => attributes["reverseSP_enabled"] ?? false;
+  set reverseSPEnabled(bool val) => setSaveNotify("reverseSP_enabled", val);
 
   List<String> get enabledNotifs => cast<String>(attributes["notif_enabled"])?.split(",") ?? [];
   set enabledNotifs(List<String> val) => setSaveNotify("notif_enabled", val.join(","));
@@ -207,8 +219,89 @@ class Preferences extends SerializableObject with ChangeNotifier {
     _loggingEnabled = loggingEnabled;
   }
 
+  void loadFromExportJson() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+    if (result != null) {
+      File file = File(result.files.single.path!);
+      try {
+        loadFromJson(await file.readAsString());
+      } catch (e, s) {
+        logCatch("indiware-check", e, s);
+        return null;
+      }
+    } else {
+      // User canceled the picker
+    }
+  }
+
   Preferences() {
     objectCreators["time_to_next_plan"] = (_) => HMTime(14, 45);
     objectCreators["stuplan_names"] = (_) => <String>[];
+  }
+}
+
+Widget Function(BuildContext) sharePreferencesPageBuilder(String? data) =>
+    (context) => SharePreferencesPage(data!);
+
+class SharePreferencesPage extends StatefulWidget {
+  final String data;
+
+  const SharePreferencesPage(this.data, {super.key});
+
+  @override
+  State<SharePreferencesPage> createState() => _SharePreferencesPageState();
+}
+
+class _SharePreferencesPageState extends State<SharePreferencesPage> {
+  @override
+  Widget build(BuildContext context) {
+    String prefsjson = sharedPreferences.getString(prefsPrefKey) as String;
+    const version = ", \"prefs_version\": $prefsVersion}";
+    // fügt die Einstellungsversion in die json ein
+    //prefsjson = prefsjson.replaceRange(prefsjson.length, prefsjson.length, version);
+    return Scaffold(
+      appBar: AppBar(title: const Text("Gespeicherte Einstellungen")),
+      body: Column(
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              Share.shareXFiles(
+                  [XFile.fromData(utf8.encode(prefsjson), mimeType: 'application/json')], fileNameOverrides: ['Kepler_App_Einstellungen_Export.json'],
+                  sharePositionOrigin: Rect.fromLTWH(
+                      0, 0,
+                      MediaQuery.of(this.context).size.width,
+                      MediaQuery.of(this.context).size.height / 2
+                  )
+              );
+            },
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(flex: 0, child: Text("Exportieren")),
+                Flexible(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 4),
+                    child: Icon(Icons.ios_share, size: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SizedBox(
+              width: double.infinity,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  //child: Text(widget.data + (sharedPreferences.getString(prefsPrefKey) as String)),
+                  child: Text(prefsjson),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
