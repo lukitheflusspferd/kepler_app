@@ -32,7 +32,7 @@
 // kepler_app erhalten haben. Wenn nicht, siehe <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:flutter_keyboard_size/flutter_keyboard_size.dart';
 import 'package:kepler_app/drawer.dart';
 import 'package:kepler_app/libs/custom_simple_chips_input.dart';
 import 'package:kepler_app/libs/lernsax.dart';
@@ -42,7 +42,6 @@ import 'package:kepler_app/libs/state.dart';
 import 'package:kepler_app/tabs/lernsax/ls_data.dart';
 import 'package:kepler_app/tabs/lernsax/pick_member_dialog.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:provider/provider.dart';
 
 /// wie bezieht sich `reference` auf diese Mail
 enum LSMWPReferenceMode {
@@ -182,8 +181,8 @@ class _MailWritePageState extends State<MailWritePage> {
             ),
             /// wenn die Tastatur geöffnet wird, sollte dieses Widget weniger Bildschirmplatz beanspruchen
             /// -> wird kleiner animiert
-            KeyboardVisibilityBuilder(
-              builder: (context, visible) {
+            Consumer<ScreenHeight>(
+              builder: (context, kbdData, _) {
                 return AnimatedSize(
                   duration: const Duration(milliseconds: 100),
                   child: Align(
@@ -242,7 +241,7 @@ class _MailWritePageState extends State<MailWritePage> {
                           ),
                         ),
                       ),
-                      maxHeight: MediaQuery.sizeOf(context).height * (visible ? .1 : .2),
+                      maxHeight: MediaQuery.sizeOf(context).height * (kbdData.isOpen ? .1 : .2),
                     ),
                   ),
                 );

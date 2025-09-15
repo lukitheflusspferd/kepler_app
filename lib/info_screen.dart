@@ -32,11 +32,9 @@
 // kepler_app erhalten haben. Wenn nicht, siehe <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:flutter_keyboard_size/flutter_keyboard_size.dart';
 import 'package:kepler_app/build_vars.dart';
 import 'package:kepler_app/libs/state.dart';
-import 'package:provider/provider.dart';
-
 
 /// InfoScreen-s dienen zur Anzeige von Infos in einem Overlay über die Haupt-Appoberfläche.
 /// Dabei werden sie mit einem Stack immer darüber angezeigt.
@@ -223,9 +221,9 @@ class InfoScreenDisplayState extends State<InfoScreenDisplay> with SingleTickerP
                   ),
                   /// length > 1 bedeutet, dass die Fortschritts-Punkte angezeigt werden -
                   /// und die werden hier ausgeblendet, wenn die Tastatur aktuell verwendet wird
-                  if (infoScreens.length > 1) KeyboardVisibilityBuilder(
-                    builder: (context, keyboardVisible) {
-                      if (keyboardVisible) return const SizedBox.shrink();
+                  if (infoScreens.length > 1) Consumer<ScreenHeight>(
+                    builder: (context, kdbData, _) {
+                      if (kdbData.isOpen) return const SizedBox.shrink();
                       final dark = hasDarkTheme(context);
                       return Align(
                         alignment: Alignment.bottomCenter,

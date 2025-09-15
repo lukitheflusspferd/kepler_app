@@ -198,16 +198,24 @@ class StuPlanData extends SerializableObject with ChangeNotifier {
     // print(summerHolidays);
     int startIndex = 0;
     int continualDates = 0;
-    int hrDiff;
+    int hourDiff;
     while (startIndex < summerHolidays.length - 1) {
-      hrDiff = summerHolidays[startIndex + continualDates].difference(summerHolidays[startIndex + continualDates + 1]).inHours.abs();
-      while (hrDiff >= 23 && hrDiff <= 25) {
+      hourDiff = summerHolidays[startIndex + continualDates].difference(summerHolidays[startIndex + continualDates + 1]).inHours.abs();
+      while (hourDiff >= 23 && hourDiff <= 25) {
         continualDates += 1;
-        hrDiff = summerHolidays[startIndex + continualDates].difference(summerHolidays[startIndex + continualDates + 1]).inHours.abs();
+        if (summerHolidays.length <= startIndex + continualDates + 1) break;
+        hourDiff = summerHolidays[startIndex + continualDates].difference(summerHolidays[startIndex + continualDates + 1]).inHours.abs();
         // print(summerHolidays[startIndex + continualDates]);
         // print(hrDiff);
       }
-      if (continualDates >= 4) return (summerHolidays[startIndex].add(const Duration(days: -2)), summerHolidays[startIndex].add(const Duration(days: 6 * 7 - 1)));
+      if (continualDates >= 4) {
+        if (summerHolidays[startIndex].month >= 8) {
+          // falls wir am Ende der Ferien sind (passiert am Anfang von neuem Schuljahr, weil nur Ferienenddaten noch in Klassen.xml stehen)
+          return (summerHolidays[startIndex + continualDates].add(const Duration(days: -6 * 7 + 1)), summerHolidays[startIndex + continualDates].add(const Duration(days: 2)));
+        } else {
+          return (summerHolidays[startIndex].add(const Duration(days: -2)), summerHolidays[startIndex].add(const Duration(days: 6 * 7 - 1)));
+        }
+      }
       startIndex += continualDates + 1;
     }
     return null;

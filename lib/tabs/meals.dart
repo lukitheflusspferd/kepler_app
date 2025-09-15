@@ -34,7 +34,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:appcheck/appcheck.dart';
+import 'package:installed_apps/index.dart';
 import 'package:kepler_app/libs/snack.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -57,8 +57,7 @@ String appId() => (Platform.isIOS) ? appleAppId : androidAppId;
 class _MealOrderingTabState extends State<MealOrderingTab> {
   Future<bool> hasDLSApp() async {
     try {
-      await AppCheck().checkAvailability(androidAppId);
-      return true;
+      return Platform.isAndroid && (await InstalledApps.isAppInstalled(androidAppId) ?? false);
     } catch (_) {
       // this exception is expected, don't log it
       // logCatch("dls-app-avail", e, s);
@@ -99,7 +98,7 @@ class _MealOrderingTabState extends State<MealOrderingTab> {
                 final hasApp = snapshot.data;
                 if (hasApp == null) return;
                 if (hasApp) {
-                  AppCheck().launchApp(appId());
+                  if (Platform.isAndroid) InstalledApps.startApp(appId());
                 } else {
                   launchUrl(Uri.parse("market://details?id=$androidAppId")).catchError((e) {
                     showSnackBar(text: "Keine App zum Installieren von Apps gefunden.", clear: true, error: true);

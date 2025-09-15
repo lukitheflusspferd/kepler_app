@@ -34,8 +34,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:appcheck/appcheck.dart';
 import 'package:flutter/material.dart';
+import 'package:installed_apps/index.dart';
 import 'package:kepler_app/libs/lernsax.dart';
 import 'package:kepler_app/libs/preferences.dart';
 import 'package:kepler_app/libs/snack.dart';
@@ -208,11 +208,12 @@ Future<bool> lernSaxOpenInOfficialApp(BuildContext context) async {
   if (!internal.infosShown.contains(lernSaxAppInfoKey)) {
     final sie = Provider.of<Preferences>(context, listen: false).preferredPronoun == Pronoun.sie;
     bool appInstalled = false;
-    try {
-      await AppCheck().checkAvailability(lernSaxMsgrAndroidPkg);
-      appInstalled = true; // will only ever happen on android because the checker only works for android
-    } catch (_) {}
-    // ignore: use_build_context_synchronously
+    if (Platform.isAndroid) {
+      try {
+        appInstalled = await InstalledApps.isAppInstalled(lernSaxMsgrAndroidPkg) ?? false;
+      } catch (_) {}
+    }
+    if (!context.mounted) return false;
     await showDialog(context: context, builder: (ctx) => AlertDialog(
       title: const Text("Info zum Vertretungsplan"),
       content: Text.rich(TextSpan(
@@ -236,7 +237,7 @@ Future<bool> lernSaxOpenInOfficialApp(BuildContext context) async {
 
   if (Platform.isAndroid) {
     try {
-      await AppCheck().launchApp(lernSaxMsgrAndroidPkg);
+      await InstalledApps.startApp(lernSaxMsgrAndroidPkg);
     } catch (_) {
       try {
         await launchUrl(Uri.parse("market://details?id=$lernSaxMsgrAndroidPkg"));

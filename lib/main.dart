@@ -37,6 +37,7 @@ import 'dart:math';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_keyboard_size/flutter_keyboard_size.dart' show ScreenHeight;
 import 'package:flutter_system_proxy/flutter_system_proxy.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -148,7 +149,7 @@ Future<void> initializeApp() async {
       fetchTaskName,
       fetchTaskName,
       frequency: const Duration(hours: 3),
-      existingWorkPolicy: ExistingWorkPolicy.replace,
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
       initialDelay: const Duration(seconds: 5),
       constraints: Constraints(networkType: NetworkType.connected),
     );
@@ -631,26 +632,22 @@ class _KeplerAppState extends State<KeplerApp> with WidgetsBindingObserver {
                   return _prefs.startNavPageIDs;
                 }(),
             ),
+            ChangeNotifierProvider.value(value: _prefs),
+            ChangeNotifierProvider.value(value: _internalState),
+            ChangeNotifierProvider.value(value: _newsCache),
+            ChangeNotifierProvider.value(value: _credStore),
+            ChangeNotifierProvider.value(value: _stuPlanData),
+            ChangeNotifierProvider.value(value: _lernSaxData),
+            ChangeNotifierProvider.value(value: _eventManager),
             ChangeNotifierProvider(
-              create: (_) => _prefs,
-            ),
-            ChangeNotifierProvider(
-              create: (_) => _internalState,
-            ),
-            ChangeNotifierProvider(
-              create: (_) => _newsCache,
-            ),
-            ChangeNotifierProvider(
-              create: (_) => _credStore,
-            ),
-            ChangeNotifierProvider(
-              create: (_) => _stuPlanData,
-            ),
-            ChangeNotifierProvider(
-              create: (_) => _lernSaxData,
-            ),
-            ChangeNotifierProvider(
-              create: (_) => _eventManager,
+              create: (ctx) {
+                final screenHeight = ScreenHeight(
+                  initialHeight: MediaQuery.of(context).size.height,
+                  smallSize: 500,
+                );
+                screenHeight.change(MediaQuery.of(context).viewInsets.bottom);
+                return screenHeight;
+              },
             ),
           ],
           child: MaterialApp(

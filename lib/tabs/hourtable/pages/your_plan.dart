@@ -306,6 +306,8 @@ class YourPlanPageState extends State<YourPlanPage> with WidgetsBindingObserver 
     stdata.addListener(stdataListener);
     _loadWidgetData(teacher);
 
+    /// für Android-Launcher-Widgets: damit in diesem Flutter-Widget bei jedem Öffnen der App, auch aus Letzte-Apps-Menü,
+    /// `didChangeAppLifecycleState` aufgerufen wird, um direkt die Widget-Daten zu aktualisieren
     WidgetsBinding.instance.addObserver(this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -316,12 +318,15 @@ class YourPlanPageState extends State<YourPlanPage> with WidgetsBindingObserver 
       if (shEnd.year <= lastRemYear) return;
 
       final diff = shEnd.difference(DateTime.now());
-      if (diff.inDays > 0 && diff.inDays < 7 || kDebugMode) {
+      /// `diff.inDays >= -60 && diff.inDays <= 7` ist `true` bis zu 60 Tage nach Ferienende und bis zu 7 Tage vor Ferienende
+      /// da der Dialog nur einmal pro Jahr angezeigt wird, gebe ich dem Benutzer bis zu 60 Tage im neuen Schuljahr Zeit,
+      /// um die Erinnerung zu sehen
+      if ((diff.inDays >= 60 && diff.inDays <= 7) || kDebugMode) {
         showDialog(context: context, builder: (ctx) => AlertDialog(
           title: Text("Neues Schuljahr"),
           content: Selector<Preferences, bool>(
             selector: (ctx2, prefs) => prefs.preferredPronoun == Pronoun.sie,
-            builder: (_, sie, _) => Text("Bald beginnt ein neues Schuljahr. Daher ${sie ? "sollten Sie" : "solltest Du"} überprüfen, ob ${sie ? "Sie" : "Du"} weiterhin den richtigen Stundenplan mit den richtigen Fächern ${sie ? "ausgewählt haben" : "ausgewählt hast"}. Dafür wird jetzt der Auswahlbildschirm geöffnet."),
+            builder: (_, sie, _) => Text("Es beginnt ein neues Schuljahr. Daher ${sie ? "sollten Sie" : "solltest Du"} überprüfen, ob ${sie ? "Sie" : "Du"} weiterhin den richtigen Stundenplan mit den richtigen Fächern ${sie ? "ausgewählt haben" : "ausgewählt hast"}. Dafür wird jetzt der Auswahlbildschirm geöffnet."),
           ),
           actions: [
             TextButton(onPressed: () {
