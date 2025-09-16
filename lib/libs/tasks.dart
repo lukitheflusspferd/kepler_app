@@ -37,7 +37,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
-import 'package:kepler_app/build_vars.dart';
 import 'package:kepler_app/libs/filesystem.dart';
 import 'package:kepler_app/libs/indiware.dart';
 import 'package:kepler_app/libs/logging.dart';
@@ -101,28 +100,9 @@ Future<void> runNewsFetchTask() async {
 
   final newNews = await loadAllNewNews(newsCache.newsData.first.link, 6);
   if (newNews == null) return;
-  if (kDebugNotifData) {
-      newNews.add(
-          NewsEntryData()
-              ..createdDate = DateTime.now()
-              ..link = "https://kepler-chemnitz.de/allgemein/"
-              ..title = "Vielen Dank an alle, die sich diese App angeschaut haben!"
-              ..summary = "Es gibt wieder tolles neues Zeug an unserem Gymnasium. Ich habe hier über alles geschrieben, wenn du das aber genau wissen willst, musst du hier klicken."
-              ..writer = "Einerd Er-Schreiber"
-      );
-      // newNews.add(
-      //     NewsEntryData()
-      //         ..createdDate = DateTime.now()
-      //         ..link = "https://kepler-chemnitz.de/allgemein/"
-      //         ..title = "Landesseminar mit diesem Vlad"
-      //         ..summary = "der hat mir auch geholfen - vielen Dank an Vlad von VLANT :D"
-      //         ..writer = "Jeman D'Anderes"
-      // );
-  } else {
-    if (newNews.isEmpty) return;
-    
-    newsCache.addNewsData(newNews);
-  }
+
+  if (newNews.isEmpty) return;
+  newsCache.addNewsData(newNews);
 
   logDebug("nw-notif", "Neue Benachrichtigung für Kepler-News: ${newNews.length} neue Nachricht(en)");
 
@@ -156,22 +136,6 @@ Future<void> runStuPlanFetchTask() async {
   var differentLessons = (spdata.selectedTeacherName != null) ? await getDifferentTeacherLessons(creds, spdata.selectedTeacherName!) : await getDifferentClassLessons(creds, spdata.selectedClassName!, spdata.hiddenCourseIDs);
   differentLessons ??= (spdata.selectedTeacherName != null && spdata.selectedClassName != null) ? await getDifferentClassLessons(creds, spdata.selectedClassName!, spdata.hiddenCourseIDs) : null;
 
-  if (kDebugNotifData) {
-    differentLessons ??= {
-      DateTime.now(): [const VPLesson(
-        subjectCode: "DE",
-        infoText: "",
-        roomChanged: false,
-        roomCodes: ["153"],
-        schoolHour: 2,
-        subjectChanged: false,
-        teacherCode: "Alb",
-        teacherChanged: false,
-        startTime: null, endTime: null, subjectID: null,
-      )],
-    };
-  }
-
   if (differentLessons == null || differentLessons.isEmpty) return;
 
   initializeDateFormatting();
@@ -201,17 +165,7 @@ Future<Map<DateTime, List<VPLesson>>?> getDifferentClassLessons(CredentialStore 
 
     final oldData = await IndiwareDataManager.getCachedKlDataForDate(date);
     if (oldData != null) {
-      if (kDebugNotifData) {
-        final kl = oldData.classes.firstWhere((e) => e.className == "12");
-        final l = kl.lessons.removeAt(0);
-        kl.lessons.insert(0, VPLesson(schoolHour: l.schoolHour, startTime: l.startTime, endTime: l.endTime, subjectCode: "Cool", subjectChanged: true, teacherCode: l.teacherCode, teacherChanged: l.teacherChanged, roomCodes: l.roomCodes, roomChanged: l.roomChanged, subjectID: l.subjectID, infoText: l.infoText));
-        oldDatas[date] = VPKlData(header: oldData.header, holidays: oldData.holidays, classes: [
-          ...oldData.classes.where((element) => element.className != "12"),
-          kl,
-        ], additionalInfo: oldData.additionalInfo);
-      } else {
-        oldDatas[date] = oldData;
-      }
+      oldDatas[date] = oldData;
     }
 
     if (newData != null) await IndiwareDataManager.setCachedKlDataForDate(date, newData);

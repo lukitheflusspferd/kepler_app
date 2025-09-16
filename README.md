@@ -61,11 +61,11 @@ Durch Build-Konstanten können verschiedene Varianten der App gebaut und Werte g
   - zeigt LS class login bei Tasks an
   - zeigt Testdaten bei Serverproblemen beim Pendel an
   - ist automatisch bei Debug-Variante von App aktiviert
-- `debug_notif_data` = sollen Testdaten für Benachrichtungen angezeigt werden (Standard: `false`)
-  - fügt jedes Mal beim Ausführen des Hintergrund-Tasks Testdaten an
-  - zeigt damit jedes Mal zwei Benachrichtigungen (Stundenplan-Änderungen und neue News) an
 - `creds_debug` = sollen Debugausgaben zu Stundenplan-Anmeldedaten zum Log hinzugefügt werden (Standard: `false`)
 - `logup_host` = Standardhost für LogUp (Standard: `null` → Log hochladen deaktiviert)
+  - Server siehe [VLANT-Studios/VLANT-LogUp](https://github.com/VLANT-Studios/VLANT-LogUp)
+- `dynamic_data_host` = Standardhost für dynamische Daten (Standard: `null` → dynamische Daten deaktiviert)
+  - Server siehe [AntonioAlbt/dyn_kepapp_data](https://github.com/AntonioAlbt/dyn_kepapp_data)
 
 Zum Aktivieren beim App-Build `--dart-define=<varname>=[true|false]` an `flutter run` oder `flutter build` übergeben, z.B.:
 

@@ -32,8 +32,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "de.keplerchemnitz.kepler_app"
     compileSdk = flutter.compileSdkVersion
-    // ndkVersion = flutter.ndkVersion
-    ndkVersion = "27.3.13750724"
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         // for flutter_local_notifications
@@ -54,7 +53,6 @@ android {
     defaultConfig {
         applicationId "de.keplerchemnitz.kepler_app"
         
-        // minSdk = flutter.minSdkVersion
         minSdkVersion = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

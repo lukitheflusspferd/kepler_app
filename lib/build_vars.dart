@@ -43,9 +43,7 @@ import 'package:flutter/foundation.dart';
 const kIsBetaVersion = bool.fromEnvironment("beta", defaultValue: kDebugMode);
 /// sollen verschiedene Debug-Features aktiviert/angezeigt werden (siehe Verwendungen der Variable)
 const kDebugFeatures = bool.fromEnvironment("debug_features", defaultValue: kDebugMode);
-/// sollen jedes Mal beim Überprüfen auf neue Daten für Benachrichtigungen Test-Daten verwendet und als
-/// Benachrichtigung angezeigt werden
-const kDebugNotifData = bool.fromEnvironment("debug_notif_data", defaultValue: false);
+
 /// sollen alle Änderungen an Login-Daten im Log aufgezeichnet werden
 const kCredsDebug = bool.fromEnvironment("creds_debug", defaultValue: false);
 

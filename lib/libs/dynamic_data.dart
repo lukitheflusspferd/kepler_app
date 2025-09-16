@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:kepler_app/build_vars.dart';
 import 'package:http/http.dart' as http;
 import 'package:kepler_app/libs/logging.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 const supportedMajorServerVersion = 1;
 
@@ -29,7 +32,20 @@ class DynamicData {
 
     final dynamic json;
     try {
-      final data = await (http.get(_ddUri("/data/status")).timeout(const Duration(seconds: 3)));
+      final pkg = await PackageInfo.fromPlatform();
+      final osVer = Platform.isAndroid ? (await DeviceInfoPlugin().androidInfo) : Platform.isIOS ? (await DeviceInfoPlugin().iosInfo) : (await DeviceInfoPlugin().deviceInfo);
+
+      /// dynamischen Datenzustand von Server abfragen, mit Infos zu Plattform für aktuelle Versionsbestimmung
+      final data = await (http.get(_ddUri("/data/status").replace(
+        queryParameters: {
+          "os": Platform.operatingSystem,
+          "osver": (Platform.isAndroid ?
+            "${(osVer as AndroidDeviceInfo).version.release} (API ${osVer.version.sdkInt})"
+            : Platform.isIOS ? (osVer as IosDeviceInfo).systemVersion : "other"),
+          "appver": pkg.version,
+          "appvercode": pkg.buildNumber,
+        },
+      )).timeout(const Duration(seconds: 3)));
       if (data.statusCode != 200) return false;
       json = jsonDecode(data.body);
     } on Exception catch (e, s) {

@@ -302,6 +302,10 @@ class _BackgroundInfoLoaderState extends State<BackgroundInfoLoader> {
               ),
               child: Text("Im ${(Platform.isAndroid) ? "Play" : "App"} Store öffnen"),
             ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text("Ok, schließen"),
+            ),
           ],
         ));
         internal.lastVersionUpdateReminderShown = latestUpdate;

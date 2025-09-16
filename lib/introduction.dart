@@ -33,6 +33,7 @@
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kepler_app/info_screen.dart';
 import 'package:kepler_app/libs/indiware.dart';
 import 'package:kepler_app/libs/lernsax.dart';
@@ -316,23 +317,30 @@ class _LernSaxScreenMainState extends State<LernSaxScreenMain> {
             "Bitte ${sie ? "melden Sie sich" : "melde Dich"} mit ${sie ? "Ihrem" : "Deinem"} JKG-LernSax-Konto an. Damit können wir bestätigen, dass ${sie ? "Sie" : "Du"} wirklich Teil unserer Schule ${sie ? "sind" : "bist"}.",
           ),
         ),
-        TextField(
-          controller: _mailController,
-          keyboardType: TextInputType.emailAddress,
-          autocorrect: false,
-          decoration: InputDecoration(
-            labelText: "LernSax-Email-Adresse",
-            errorText: _mailError,
-          ),
-        ),
-        TextField(
-          controller: _pwController,
-          keyboardType: TextInputType.visiblePassword,
-          autocorrect: false,
-          obscureText: true,
-          decoration: InputDecoration(
-            labelText: "LernSax-Passwort",
-            errorText: _pwError,
+        SensitiveContent(
+          sensitivity: ContentSensitivity.sensitive,
+          child: Column(
+            children: [
+              TextField(
+                controller: _mailController,
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  labelText: "LernSax-Email-Adresse",
+                  errorText: _mailError,
+                ),
+              ),
+              TextField(
+                controller: _pwController,
+                keyboardType: TextInputType.visiblePassword,
+                autocorrect: false,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: "LernSax-Passwort",
+                  errorText: _pwError,
+                ),
+              ),
+            ],
           ),
         ),
         Padding(
@@ -670,21 +678,28 @@ class _StuPlanScreenMainState extends State<StuPlanScreenMain> {
                 Text("Bitte ${sie ? "geben Sie" : "gebe"} die Anmeldedaten für ${sie ? "Ihren" : "Deinen"} Stundenplan auf plan.kepler-chemnitz.de ${widget.again ? "erneut" : ""} ein."),
                 if (state.userType == UserType.parent) Text("Da ${sie ? "Sie" : "Du"} ein Elternteil ${sie ? "sind" : "bist"}, sollten dies die Anmeldedaten des Schülerstundenplanes sein."),
                 const Padding(padding: EdgeInsets.all(4)),
-                TextField(
-                  controller: _userController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: "Benutzername",
-                    errorText: _userErr,
-                  ),
-                ),
-                TextField(
-                  controller: _pwController,
-                  keyboardType: TextInputType.visiblePassword,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: "Passwort",
-                    errorText: _pwErr,
+                SensitiveContent(
+                  sensitivity: ContentSensitivity.sensitive,
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _userController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: "Benutzername",
+                          errorText: _userErr,
+                        ),
+                      ),
+                      TextField(
+                        controller: _pwController,
+                        keyboardType: TextInputType.visiblePassword,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: "Passwort",
+                          errorText: _pwErr,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Padding(

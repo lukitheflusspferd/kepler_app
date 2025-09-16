@@ -27,11 +27,6 @@ on:
         required: true
         type: boolean
         default: false
-      debugNotifyData:
-        description: "add notifications debug data - will spam notifications every 2 hours"
-        required: true
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -44,14 +39,14 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '21'
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.1'
+          flutter-version: '3.35.3'
       - run: |
           flutter --disable-analytics
           flutter config --no-analytics
@@ -72,11 +67,10 @@ jobs:
           FP: "signing/keystore.jks"
         name: Setup APK signing
       - run: flutter analyze
-      - run: flutter build apk --release --dart-define=beta=$BETA --dart-define=debug_features=$DEBUG --dart-define=debug_notif_data=$DEBUGNOTIF --dart-define=logup_host=$LOGUP_HOST --dart-define=dynamic_data_host=$DYNDATA_HOST
+      - run: flutter build apk --release --dart-define=beta=$BETA --dart-define=debug_features=$DEBUG --dart-define=logup_host=$LOGUP_HOST --dart-define=dynamic_data_host=$DYNDATA_HOST
         env:
           BETA: ${{ inputs.beta }}
           DEBUG: ${{ inputs.debugFeatures }}
-          DEBUGNOTIF: ${{ inputs.debugNotifyData }}
           LOGUP_HOST: ${{ secrets.LOGUP_HOST }}
           DYNDATA_HOST: ${{ secrets.DYNDATA_HOST }}
         if: ${{ github.event_name == 'workflow_dispatch' }}
