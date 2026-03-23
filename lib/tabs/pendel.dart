@@ -86,7 +86,7 @@ class _PendelInfoTabState extends State<PendelInfoTab> with SingleTickerProvider
   /// anderes Widget auf den State zugreift / zugreifen kann
   bool _loading = false, dataAvailable = false;
   /// Werte werden automatisch in diese Variablen geladen
-  double? cpu, ram, angle, period;
+  double? cpu, ram, angle, period, morningPosition, eveningPosition;
   DateTime? lastUpdate;
 
   late final AnimationController _controller;
@@ -210,6 +210,30 @@ class _PendelInfoTabState extends State<PendelInfoTab> with SingleTickerProvider
                           ),
                           Center(
                             child: Transform.rotate(
+                              angle: (pi / 180.0) * ((morningPosition ?? 0) + 90),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.greenAccent
+                                ),
+                                width: 3,
+                                height: 190,
+                              ),
+                              ),
+                          ),
+                          Center(
+                            child: Transform.rotate(
+                              angle: (pi / 180.0) * ((eveningPosition ?? 0) + 90),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.redAccent
+                                ),
+                                width: 3,
+                                height: 190,
+                              ),
+                              ),
+                          ),
+                          Center(
+                            child: Transform.rotate(
                               // + 90 is needed to change 0° to mean horizontal line
                               /// krasse Umrechnung von Grad in Radian (vielleicht hätte es auch eine Funktion von Dart
                               /// gegeben, aber naja)
@@ -283,6 +307,23 @@ class _PendelInfoTabState extends State<PendelInfoTab> with SingleTickerProvider
                         ),
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            const TextSpan(
+                              text: "Winkel des Pendels um 7:05\n",
+                              style: TextStyle(color: Colors.greenAccent)
+                            ),
+                            const TextSpan(
+                              text: "Winkel des Pendels um 14:15\n",
+                              style: TextStyle(color: Colors.redAccent)
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     /// wird nicht mehr von der API angeboten
                     // Text.rich(
                     //   TextSpan(
@@ -350,10 +391,10 @@ class _PendelInfoTabState extends State<PendelInfoTab> with SingleTickerProvider
       dataAvailable = false;
     });
 
-    final (date_, angle_, period_, cpu_, ram_) = await getPendelData();
+    final (date_, angle_, morning_, evening_, period_, cpu_, ram_) = await getPendelData();
     /// da sowieso am Ende setState aufgerufen wird, rufe ich es hier trotz der Veränderung der Feldern nicht auf
     /// (bei !mounted wird das Widget eh nicht mehr angezeigt)
-    lastUpdate = date_; angle = angle_; period = period_; cpu = cpu_; ram = ram_;
+    lastUpdate = date_; angle = angle_; morningPosition = morning_; eveningPosition = evening_; period = period_; cpu = cpu_; ram = ram_;
     dataAvailable = angle != null;
     if (!mounted) return;
 
@@ -364,7 +405,7 @@ class _PendelInfoTabState extends State<PendelInfoTab> with SingleTickerProvider
 }
 
 /// Rückgabe-Daten: (Zuletzt aktualisiert, Winkel, Periodendauer, CPU %, RAM %)
-Future<(DateTime?, double?, double?, double?, double?)> getPendelData() async {
+Future<(DateTime?, double?, double?, double?, double?, double?, double?)> getPendelData() async {
   try {
     final res = jsonDecode((await http.get(Uri.parse(pendelDataUrl))).body);
     // the values should already be double-s, but just to be safe, convert them anyway
@@ -374,6 +415,8 @@ Future<(DateTime?, double?, double?, double?, double?)> getPendelData() async {
     return (
       DateTime.tryParse(res["date"]?.toString() ?? "-")?.toLocal(),
       double.tryParse(res["angle"]?.toString() ?? "-"),
+      double.tryParse(res["morning_position"]?.toString() ?? "-"),
+      double.tryParse(res["evening_position"]?.toString() ?? "-"),
       double.tryParse(res["period"]?.toString() ?? "-"),
       double.tryParse(res["cpu"]?.toString() ?? "-"),
       double.tryParse(res["ram"]?.toString() ?? "-"),
@@ -382,11 +425,11 @@ Future<(DateTime?, double?, double?, double?, double?)> getPendelData() async {
     logCatch("pendel", e, s);
     if (kDebugFeatures) {
       /// Jahr muss bei Testdaten kleiner als 2022 sein
-      return (DateTime(2020, 3, 11), 66.66, 31.2, 9.2314, 15.309);
+      return (DateTime(2020, 3, 11), 66.66, 12.5, 16.0, 31.2, 9.2314, 15.309);
     }
     // // can be simplified, but is better readable this way
     // dataAvailable = kDebugFeatures ? true : false;
     if (kDebugMode) print("$e - $s");
   }
-  return (null, null, null, null, null);
+  return (null, null, null, null, null, null, null);
 }
