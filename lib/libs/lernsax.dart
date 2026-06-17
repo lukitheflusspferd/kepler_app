@@ -308,9 +308,14 @@ MOJKGResult _processMemberResponse(dynamic res) {
 Future<(bool, String?)> registerApp(String mail, String password) async {
   if (mail == lernSaxDemoModeMail) return (true, "demotesttoken");
   try {
-    final deviceModel = (Platform.isAndroid)
-        ? (await DeviceInfoPlugin().androidInfo).model
-        : (await DeviceInfoPlugin().iosInfo).model;
+    String deviceModel;
+    if (Platform.isAndroid) {deviceModel = (await DeviceInfoPlugin().androidInfo).model;}
+    else if (Platform.isIOS) {deviceModel = (await DeviceInfoPlugin().iosInfo).model;}
+    else if (Platform.isWindows) {deviceModel = (await DeviceInfoPlugin().windowsInfo).productName;}
+    else {
+      logWarn("lernsax", "Nicht unterstütztes Betriebssystem beim Registrieren der App bei Lernsax.");
+      deviceModel = "unknown";
+    }
     final (online, res) = await _api([
       _call(
         method: "login",

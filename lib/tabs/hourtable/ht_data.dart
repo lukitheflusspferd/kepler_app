@@ -395,7 +395,7 @@ class IndiwareDataManager {
   static Future<void> clearCachedData({ DateTime? excludeDate }) async {
     final dir = Directory("${await appDataDirPath}$stuplanpath");
     for (var file in (await dir.list().toList())) {
-      final name = file.path.split("/").last;
+      final name = file.path.split(Platform.pathSeparator).last;
       if (name.endsWith(".xml") || name.endsWith("-exams.json")) {
         // this will fail when we're in year 21xx
         // but that's a problem for future robot me
@@ -476,7 +476,7 @@ class IndiwareDataManager {
     final dir = Directory("${await appDataDirPath}$stuplanpath");
     final thresholdDate = DateTime.now().subtract(const Duration(days: 3));
     for (final file in (await dir.list().toList())) {
-      final fnDateStr = file.path.split("/").last.replaceAll(RegExp(r"-le|-kl|\.xml"), "").replaceAll(RegExp(r"-exams.json"), "");
+      final fnDateStr = file.path.split(Platform.pathSeparator).last.replaceAll(RegExp(r"-le|-kl|\.xml"), "").replaceAll(RegExp(r"-exams.json"), "");
       if (fnDateStr == "Klassen") continue;
       final date = fnTimeFormat.parse(fnDateStr);
       if (kDebugMode) print("found stuplan data xml with date ${fnTimeFormat.format(date)}, will be deleted: ${date.isBefore(thresholdDate)} - threshold: ${fnTimeFormat.format(thresholdDate)}");

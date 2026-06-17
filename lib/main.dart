@@ -137,10 +137,12 @@ Future<void> initializeApp() async {
 
   /// die übergebene Funktion wird vom Workmanager aufgerufen, wenn es Zeit für die Hintergrund-
   /// Aufgaben-Ausführung ist
-  Workmanager().initialize(
-    taskCallbackDispatcher,
-    // isInDebugMode: kDebugMode && kDebugNotifData,
-  );
+  if (Platform.isAndroid || Platform.isIOS) {
+    Workmanager().initialize(
+      taskCallbackDispatcher,
+      // isInDebugMode: kDebugMode && kDebugNotifData,
+    );
+  }
 
   // this is only applicable to android, because for iOS I'm using the background fetch capability - it's interval is configured in the swift app delegate
   // nur Android unterstützt das direkte Ausführen von Hintergrundaufgaben - auf iOS kümmert sich immer das Betriebssystem darum
@@ -154,7 +156,7 @@ Future<void> initializeApp() async {
       constraints: Constraints(networkType: NetworkType.connected),
     );
   }
-  
+
   /// beim Starten der App werden hier neue News abgefragt
   /// -> falls schon alte vorhanden: nur neue abfragen (loadAllNewNews) und dann speichern
   /// -> sonst: einfach eine Seite aktuelle News laden und speichern
@@ -222,7 +224,11 @@ void main() async {
 
   /// Der folgende Block an Code kümmert sich um das Einrichten vom Proxy, wie es vom System vorgegeben wird.
   /// Dies ist nötig, da auf Schul-iPads im Schul-WLAN immer ein Proxy zum Internetzugriff verwendet werden muss.
-  logDebug("proxy", "proxy: ${await FlutterSystemProxy.findProxyFromEnvironment("https://www.lernsax.de")}");
+  if (Platform.isAndroid || Platform.isIOS) {
+      logDebug("proxy", "proxy: ${await FlutterSystemProxy.findProxyFromEnvironment("https://www.lernsax.de")}");
+  } else {
+    logInfo("proxy", "System-Proxy-Plugin auf dieser Plattform nicht unterstützt.");
+  }
   HttpOverrides.global = ProxyHttpOverrides();
 
   /// Hier beginnt die große Magie!
@@ -239,7 +245,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // throw ""; // Test for new ErrorWidget
-    if (Platform.isIOS || Platform.isAndroid) {
+    if (Platform.isIOS || Platform.isAndroid || Platform.isWindows) {
       return const KeplerApp();
     } else {
       return const Center(

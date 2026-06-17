@@ -1185,6 +1185,7 @@ Map getExportJson(BuildContext context) {
   return exportJsonText;
 }
 
+// TODO: für Windows funktionsfähig machen
 void exportJson(BuildContext context) {
   var exportJsonMap = jsonEncode(getExportJson(context));
   final date = "${DateTime.now().year}-${DateTime.now().month}-${DateTime.now().day}_${DateTime.now().hour}-${DateTime.now().minute}";

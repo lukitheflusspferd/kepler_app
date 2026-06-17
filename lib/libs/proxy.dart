@@ -278,9 +278,15 @@ class ProxyAwareHttpClient implements HttpClient {
     if (_cache[url.host] != null) {
       return;
     } else {
-      var proxy = await FlutterSystemProxy.findProxyFromEnvironment(url.toString());
-      _cache[url.host] = proxy;
-      return;
+      if (Platform.isAndroid || Platform.isIOS) {
+        var proxy = await FlutterSystemProxy.findProxyFromEnvironment(
+            url.toString());
+        _cache[url.host] = proxy;
+        return;
+      } else {
+        _cache[url.host] = "DIRECT";
+        return;
+      }
     }
   }
 

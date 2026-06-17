@@ -131,6 +131,12 @@ void initializeNotifications() {
         defaultPresentSound: false,
         defaultPresentBadge: true,
       ),
+      windows: WindowsInitializationSettings(
+        appName: "Kepler-App",
+        appUserModelId: "de.keplerchemnitz.kepler_app",
+        guid: "17a26f8e-8825-4a9a-80cf-dc20334ebcc6",
+        iconPath: "assets/transparent_app_icon.png"
+      )
     ),
     onDidReceiveNotificationResponse: (action) async {
       if (action.notificationResponseType != NotificationResponseType.selectedNotification) return;

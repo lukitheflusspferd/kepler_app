@@ -157,7 +157,7 @@ class KeplerLogging {
   /// Datum des Logs aus Dateiname entnehmen
   static DateTime getDateFromFileName(String fileName) => fnDateFormat.parse(fileName.substring(0, fileName.length - logFileEnding.length + 1));
 
-  static String fileName(File file) => file.path.split("/").last;
+  static String fileName(File file) => file.path.split(Platform.pathSeparator).last;
   static DateTime getDateFromFile(File file) => getDateFromFileName(fileName(file));
 
   /// alle aktuell existierenden Log-Dateien abfragen
