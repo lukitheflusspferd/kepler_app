@@ -115,6 +115,9 @@ class _SettingsTabState extends State<SettingsTab> with WidgetsBindingObserver {
       builder: (context, prefs, _) {
         final sie = prefs.preferredPronoun == Pronoun.sie;
         final userType = Provider.of<AppState>(context, listen: false).userType;
+
+        final hasOtherStuPlansAdded = Provider.of<StuPlanData>(context, listen: false).altSelectedClassNames.isNotEmpty;
+
         return SettingsList(
           platform: DevicePlatform.android,
           sections: [
@@ -304,10 +307,10 @@ class _SettingsTabState extends State<SettingsTab> with WidgetsBindingObserver {
                 /// - es könnte natürlich auch jedes Mal beim Öffnen der App oder Seite sein, aber ich fand es so besser
                 /// - auf modernen Handys wird eh fast alles im RAM gehalten, da gibt es kaum mehr neu öffnen
                 rainbowSwitchTile(
-                  initialValue: prefs.reloadStuPlanAutoOnceDaily,
-                  onToggle: (val) => prefs.reloadStuPlanAutoOnceDaily = val,
+                  initialValue: prefs.reloadStuPlanAutomatically,
+                  onToggle: (val) => prefs.reloadStuPlanAutomatically = val,
                   title: const Text("Beim Öffnen automatisch aktualisieren"),
-                  description: const Text("passiert einmal täglich beim Öffnen des Stundenplanes"),
+                  description: const Text("passiert jedes Mal beim Öffnen des Stundenplanes"),
                   enabled: userType != UserType.nobody,
                 ),
                 /// dafür kann HMTime von indiware.dart gleich passend wiederverwendet werden, weil es einfach zu
@@ -394,11 +397,11 @@ class _SettingsTabState extends State<SettingsTab> with WidgetsBindingObserver {
                   enabled: userType != UserType.nobody,
                 ),
                 rainbowSwitchTile(
-                  initialValue: prefs.showYourPlanAddDropdown,
+                  initialValue: hasOtherStuPlansAdded || prefs.showYourPlanAddDropdown,
                   onToggle: (val) => prefs.showYourPlanAddDropdown = val,
                   title: const Text("Möglichkeit für Stundenpläne hinzufügen anzeigen"),
                   description: Text("aktivieren, um auf Seite \"${sie ? "Ihr" : "Dein"} Stundenplan\" Stundenpläne hinzufügen können"),
-                  enabled: userType != UserType.nobody && Provider.of<StuPlanData>(context, listen: false).altSelectedClassNames.isEmpty,
+                  enabled: userType != UserType.nobody && !hasOtherStuPlansAdded,
                 ),
                 rainbowSwitchTile(
                   initialValue: prefs.showYourPlanAddEvents,

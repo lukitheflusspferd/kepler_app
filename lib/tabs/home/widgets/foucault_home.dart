@@ -62,7 +62,7 @@ class HomePendulumWidget extends StatelessWidget {
             height: 128,
             child: (datasn.connectionState == ConnectionState.done && datasn.data != null) ? Builder(
               builder: (context) {
-                final (_, angle, _, _, _) = datasn.data!;
+                final (_, angle, _, _, _, _, _) = datasn.data!;
                 return Column(
                   mainAxisSize: MainAxisSize.max,
                   children: [
